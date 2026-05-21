@@ -9,8 +9,7 @@
 ## Быстрый старт
 
 ```bash
-git clone https://github.com/ВАШ_НИК/mtg-proxy.git
-cd mtg-proxy
+git clone git@github.com:Ddementef/MTProtoAuto.git
 bash mtg.sh
 ```
 
