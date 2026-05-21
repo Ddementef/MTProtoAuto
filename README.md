@@ -2,14 +2,15 @@
 
 Автоматическая установка MTProto прокси для Telegram на базе [MTG v2](https://github.com/9seconds/mtg) с Fake TLS (домен `ya.ru`, порт `443`).
 
-**Требования:** Ubuntu 24.04, root доступ.
+**Требования:** Ubuntu 24.04 или новее, root доступ.
 
 ---
 
 ## Быстрый старт
 
 ```bash
-git clone git@github.com:Ddementef/MTProtoAuto.git
+git clone https://github.com/Ddementef/MTProtoAuto.git
+cd MTProtoAuto
 bash mtg.sh
 ```
 

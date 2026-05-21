@@ -57,6 +57,13 @@ https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
 
 install_proxy() {
     require_root
+
+    if [[ -f "$COMPOSE_FILE" ]]; then
+        echo -e "${YELLOW}Прокси уже установлен.${NC}"
+        show_link
+        return
+    fi
+
     install_docker
 
     echo -e "${CYAN}Генерирую секрет Fake TLS для домена $FAKE_TLS_DOMAIN...${NC}"
@@ -89,8 +96,7 @@ EOF
     IP=$(get_ip)
     echo ""
     echo -e "${GREEN}Прокси запущен!${NC}"
-    echo -e "${CYAN}Ссылка для Telegram:${NC}"
-    echo -e "${YELLOW}tg://proxy?server=$IP&port=$PORT&secret=$SECRET${NC}"
+    print_link "$IP" "$SECRET"
 }
 
 show_status() {
@@ -102,24 +108,33 @@ show_status() {
     docker logs mtg --tail 20
 }
 
+print_link() {
+    local url="tg://proxy?server=$1&port=$PORT&secret=$2"
+    echo ""
+    echo -e "${CYAN}Ссылка для Telegram:${NC}"
+    printf "\e]8;;%s\a%s\e]8;;\a\n" "$url" "$url"
+}
+
 show_link() {
     require_install
     SECRET=$(grep 'secret' "$CONFIG_FILE" | cut -d'"' -f2)
     IP=$(get_ip)
-    echo ""
-    echo -e "${CYAN}Ссылка для Telegram:${NC}"
-    echo -e "${YELLOW}tg://proxy?server=$IP&port=$PORT&secret=$SECRET${NC}"
+    print_link "$IP" "$SECRET"
 }
 
 update_proxy() {
     require_root
     require_install
-    echo -e "${CYAN}Обновляю образ...${NC}"
+    echo -e "${CYAN}Обновляю скрипт...${NC}"
+    git -C "$SCRIPT_DIR" reset --hard
+    git -C "$SCRIPT_DIR" pull
+    echo -e "${CYAN}Обновляю Docker-образ...${NC}"
     cd "$INSTALL_DIR"
     docker compose pull
     docker compose up -d
     docker image prune -f
-    echo -e "${GREEN}Обновлено.${NC}"
+    echo -e "${GREEN}Всё обновлено. Перезапустите скрипт.${NC}"
+    exit 0
 }
 
 stop_proxy() {
@@ -169,7 +184,7 @@ show_menu() {
     echo "  1) Установить прокси"
     echo "  2) Статус и логи"
     echo "  3) Показать ссылку для Telegram"
-    echo "  4) Обновить образ"
+    echo "  4) Обновить всё"
     echo "  5) Запустить"
     echo "  6) Остановить"
     echo "  7) Перезапустить"
