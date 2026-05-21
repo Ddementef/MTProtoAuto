@@ -143,8 +143,17 @@ update_proxy() {
     docker compose pull
     docker compose up -d
     docker image prune -f
-    echo -e "${GREEN}Всё обновлено. Перезапустите скрипт.${NC}"
-    exit 0
+    echo -e "${GREEN}Всё обновлено. Перезапускаю скрипт...${NC}"
+    exec bash "$SCRIPT_DIR/mtg.sh"
+}
+
+check_updates() {
+    git -C "$SCRIPT_DIR" fetch --quiet 2>/dev/null || return
+    local behind
+    behind=$(git -C "$SCRIPT_DIR" rev-list HEAD..origin/main --count 2>/dev/null)
+    if [[ "$behind" -gt 0 ]]; then
+        echo -e "${YELLOW}Доступно обновление ($behind новых коммитов). Выберите пункт 4.${NC}"
+    fi
 }
 
 stop_proxy() {
@@ -223,6 +232,7 @@ show_menu() {
 }
 
 main() {
+    check_updates
     while true; do
         show_menu
         read -r choice
