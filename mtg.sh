@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="$SCRIPT_DIR/mtg-data"
 COMPOSE_FILE="$INSTALL_DIR/docker-compose.yml"
@@ -16,20 +14,32 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 get_ip() {
-    curl -s ifconfig.me
+    local ip
+    ip=$(curl -s --max-time 5 ifconfig.me 2>/dev/null)
+    if [[ -z "$ip" ]]; then
+        ip=$(curl -s --max-time 5 api.ipify.org 2>/dev/null)
+    fi
+    if [[ -z "$ip" ]]; then
+        ip=$(curl -s --max-time 5 icanhazip.com 2>/dev/null)
+    fi
+    if [[ -z "$ip" ]]; then
+        echo -e "${RED}Не удалось определить внешний IP. Вставьте IP вручную в ссылку.${NC}" >&2
+        ip="<ВАШ_IP>"
+    fi
+    echo "$ip"
 }
 
 require_root() {
     if [[ $EUID -ne 0 ]]; then
         echo -e "${RED}Запустите скрипт от root.${NC}"
-        exit 1
+        return 1
     fi
 }
 
 require_install() {
     if [[ ! -f "$COMPOSE_FILE" ]]; then
         echo -e "${RED}Прокси не установлен. Выберите пункт 1.${NC}"
-        exit 1
+        return 1
     fi
 }
 
@@ -56,7 +66,7 @@ https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
 }
 
 install_proxy() {
-    require_root
+    require_root || return
 
     if [[ -f "$COMPOSE_FILE" ]]; then
         echo -e "${YELLOW}Прокси уже установлен.${NC}"
@@ -100,7 +110,7 @@ EOF
 }
 
 show_status() {
-    require_install
+    require_install || return
     echo -e "${CYAN}Статус контейнера:${NC}"
     docker ps -a --filter name=mtg --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
     echo ""
@@ -116,15 +126,15 @@ print_link() {
 }
 
 show_link() {
-    require_install
+    require_install || return
     SECRET=$(grep 'secret' "$CONFIG_FILE" | cut -d'"' -f2)
     IP=$(get_ip)
     print_link "$IP" "$SECRET"
 }
 
 update_proxy() {
-    require_root
-    require_install
+    require_root || return
+    require_install || return
     echo -e "${CYAN}Обновляю скрипт...${NC}"
     git -C "$SCRIPT_DIR" reset --hard
     git -C "$SCRIPT_DIR" pull
@@ -138,32 +148,32 @@ update_proxy() {
 }
 
 stop_proxy() {
-    require_root
-    require_install
+    require_root || return
+    require_install || return
     cd "$INSTALL_DIR"
     docker compose down
     echo -e "${GREEN}Прокси остановлен.${NC}"
 }
 
 start_proxy() {
-    require_root
-    require_install
+    require_root || return
+    require_install || return
     cd "$INSTALL_DIR"
     docker compose up -d
     echo -e "${GREEN}Прокси запущен.${NC}"
 }
 
 restart_proxy() {
-    require_root
-    require_install
+    require_root || return
+    require_install || return
     cd "$INSTALL_DIR"
     docker compose restart
     echo -e "${GREEN}Прокси перезапущен.${NC}"
 }
 
 uninstall_proxy() {
-    require_root
-    require_install
+    require_root || return
+    require_install || return
     echo -e "${RED}Это удалит контейнер и все файлы в $INSTALL_DIR.${NC}"
     read -rp "Вы уверены? (y/N): " confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
@@ -177,7 +187,7 @@ uninstall_proxy() {
 }
 
 uninstall_all() {
-    require_root
+    require_root || return
     echo -e "${RED}Это удалит контейнер, рабочие файлы И папку со скриптом ($SCRIPT_DIR).${NC}"
     read -rp "Вы уверены? (y/N): " confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
