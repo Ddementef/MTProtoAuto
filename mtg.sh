@@ -176,6 +176,23 @@ uninstall_proxy() {
     fi
 }
 
+uninstall_all() {
+    require_root
+    echo -e "${RED}Это удалит контейнер, рабочие файлы И папку со скриптом ($SCRIPT_DIR).${NC}"
+    read -rp "Вы уверены? (y/N): " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        if [[ -f "$COMPOSE_FILE" ]]; then
+            cd "$INSTALL_DIR"
+            docker compose down
+        fi
+        rm -rf "$SCRIPT_DIR"
+        echo -e "${GREEN}Удалено полностью.${NC}"
+        exit 0
+    else
+        echo "Отменено."
+    fi
+}
+
 show_menu() {
     echo ""
     echo -e "${CYAN}=============================${NC}"
@@ -189,6 +206,7 @@ show_menu() {
     echo "  6) Остановить"
     echo "  7) Перезапустить"
     echo "  8) Удалить прокси"
+    echo "  9) Удалить полностью"
     echo "  0) Выход"
     echo -e "${CYAN}=============================${NC}"
     echo -n "Выберите пункт: "
@@ -207,6 +225,7 @@ main() {
             6) stop_proxy ;;
             7) restart_proxy ;;
             8) uninstall_proxy ;;
+            9) uninstall_all ;;
             0) echo "Выход."; exit 0 ;;
             *) echo -e "${RED}Неверный пункт.${NC}" ;;
         esac
